@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>二元搜尋樹視覺化</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --green: #277d77;
+  --ink: #29474b;
+  --muted: #71898c;
+  --line: #d6e5e3;
+}
+
+body {
+  margin: 0;
+  background: #f0f6f5;
+  color: var(--ink);
+  font-family: "Microsoft JhengHei", sans-serif;
+}
+
+header {
+  padding: 20px 5%;
+  background: white;
+  border-bottom: 1px solid var(--line);
+  font-weight: bold;
+}
+
+main {
+  max-width: 1250px;
+  padding: 26px 20px;
+  margin: auto;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+
+.description {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.panel {
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.top {
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 430px);
+  gap: 24px;
+  margin: 22px 0 18px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  padding: 10px 15px;
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(.95);
+}
+
+button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #82c5bc;
+  outline-offset: 2px;
+}
+
+.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.controls {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.rule {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+label {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.input-row {
+  display: flex;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.input-row button {
+  flex-shrink: 0;
+}
+
+input,
+select {
+  min-width: 0;
+  width: 100%;
+  padding: 11px;
+  color: var(--ink);
+  background: #f7faf9;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+small {
+  display: block;
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+#inputError {
+  min-height: 18px;
+  color: #ac5747;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+}
+
+.tree-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.tree-title span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.canvas {
+  height: 480px;
+  overflow: hidden;
+  background: #edf6f3;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+#tree {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+svg[hidden],
+#empty[hidden] {
+  display: none;
+}
+
+#empty {
+  padding: 100px 20px;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.message {
+  min-height: 56px;
+  margin: 14px 0 0;
+  padding: 12px;
+  background: #f4f8f7;
+  border-radius: 7px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border-radius: 50%;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat {
+  padding: 13px;
+  background: #edf5f2;
+  border-radius: 8px;
+}
+
+.stat span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.stat strong {
+  display: block;
+  font-size: 26px;
+  margin-top: 5px;
+}
+
+.section-label {
+  margin: 18px 0 9px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 5px 9px;
+  background: #f0f4f3;
+  border-radius: 5px;
+  font-size: 13px;
+}
+
+.chip.done {
+  background: #dcece7;
+  color: var(--green);
+}
+
+.chip.active {
+  background: #f8e3ba;
+  color: #805817;
+  font-weight: bold;
+}
+
+.traversal-panel {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.traversal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.traversal-top h2 {
+  margin: 0;
+}
+
+.traversal-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.traversal-select select {
+  width: auto;
+}
+
+#traversalRule {
+  margin-top: 12px;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+#traversalDescription {
+  margin: 8px 0 12px;
+}
+
+.order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 12px;
+  background: #edf5f2;
+  border-radius: 7px;
+}
+
+.order-number {
+  padding: 7px 11px;
+  border: 1px solid #c6ded5;
+  border-radius: 7px;
+  background: white;
+  color: var(--green);
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.order-arrow {
+  color: #89a49c;
+}
+
+.empty-result {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#history {
+  max-height: 250px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#history li {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+footer {
+  padding: 25px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .layout,
+  .top {
+    grid-template-columns: 1fr;
+  }
+
+  .side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 580px) {
+  main {
+    padding: 20px 12px;
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .side {
+    display: flex;
+  }
+
+  .canvas {
+    height: 380px;
+  }
+
+  .tree-title {
+    align-items: flex-start;
+  }
+
+  .traversal-select {
+    flex-wrap: wrap;
+  }
+}
+</style>
+</head>
+
+<body>
+<header>◈ 資料結構實驗室 ／ 二元搜尋樹</header>
+
+<main>
+  <h1>二元搜尋樹 BST</h1>
+  <div class="description">
+    逐步建立二元搜尋樹，觀察前序、中序與後序的走訪結果。
+  </div>
+
+  <section class="panel top">
+    <div>
+      <h2>操作控制</h2>
+
+      <div class="controls">
+        <button id="back">← 上一步</button>
+        <button id="step" class="primary">下一步 →</button>
+        <button id="play">自動播放</button>
+        <button id="reset">重新演示</button>
+      </div>
+
+      <div class="rule">
+        小於目前節點 → 往左<br>
+        大於目前節點 → 往右<br>
+        相同數字略過。每一步進行一次比較或插入。
+      </div>
+    </div>
+
+    <form id="form">
+      <label for="numbers">輸入所有數字</label>
+
+      <div class="input-row">
+        <input
+          id="numbers"
+          placeholder="例如：50 45 67 99 21 17 83"
+          autocomplete="off"
+          required
+        >
+        <button class="primary" type="submit">建立</button>
+      </div>
+
+      <small>以空白或逗號分隔，可輸入負整數，最多 50 個數字。</small>
+      <small>按「建立」後，再按「下一步」或「自動播放」。</small>
+      <small id="inputError" role="alert"></small>
+    </form>
+  </section>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="tree-title">
+        <h2>二元樹示意圖</h2>
+        <span>左邊較小 · 右邊較大</span>
+      </div>
+
+      <div id="canvas" class="canvas">
+        <div id="empty">請先輸入數字，再按「建立」。</div>
+        <svg
+          id="tree"
+          role="img"
+          aria-label="二元搜尋樹示意圖"
+          hidden
+        ></svg>
+      </div>
+
+      <div class="legend">
+        <span>
+          <i class="dot" style="background:#e7af50"></i>正在比較
+        </span>
+        <span>
+          <i class="dot" style="background:#277d77"></i>新插入節點
+        </span>
+        <span>
+          <i class="dot" style="background:#98bdb1"></i>經過的路徑
+        </span>
+      </div>
+
+      <p
+        id="message"
+        class="message"
+        role="status"
+        aria-live="polite"
+      ></p>
+
+      <div class="traversal-panel">
+        <div class="traversal-top">
+          <h2>走訪結果</h2>
+
+          <div class="traversal-select">
+            <label for="traversal">走訪方式</label>
+            <select id="traversal">
+              <option value="preorder">前序 Preorder</option>
+              <option value="inorder" selected>中序 Inorder</option>
+              <option value="postorder">後序 Postorder</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="traversalRule"></div>
+        <p id="traversalDescription" class="description"></p>
+        <div id="order" class="order" aria-label="走訪結果"></div>
+
+        <small>
+          結果依目前已插入的節點即時更新；切換方式不會改變樹的結構。
+        </small>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h2>目前狀態</h2>
+
+        <div class="stats">
+          <div class="stat">
+            <span>節點數</span>
+            <strong id="count">0</strong>
+          </div>
+          <div class="stat">
+            <span>樹高（層數）</span>
+            <strong id="height">0</strong>
+          </div>
+        </div>
+
+        <div class="section-label">輸入順序</div>
+        <div id="sequence" class="sequence"></div>
+
+        <div class="section-label">插入進度</div>
+        <div id="progress" class="description"></div>
+
+        <div class="section-label">走訪方式說明</div>
+        <div class="description">
+          前序：根 → 左 → 右<br>
+          中序：左 → 根 → 右<br>
+          後序：左 → 右 → 根
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>操作紀錄</h2>
+        <ol id="history"></ol>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<footer>二元搜尋樹視覺化 · 比較、插入與走訪</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+
+let values = [];
+let root = null;
+let index = 0;
+let pending = null;
+let comparing = null;
+let fresh = null;
+let path = [];
+let history = [];
+let snapshots = [];
+let timer = null;
+let message = "";
+let animationLocked = false;
+let unlockTimer = null;
+
+const traversalInfo = {
+  preorder: {
+    rule: "前序：根 → 左 → 右",
+    description:
+      "先拜訪根節點，再走訪左子樹，最後走訪右子樹。"
+  },
+  inorder: {
+    rule: "中序：左 → 根 → 右",
+    description:
+      "先走訪左子樹，再拜訪根節點，最後走訪右子樹。二元搜尋樹的結果會由小到大排列。"
+  },
+  postorder: {
+    rule: "後序：左 → 右 → 根",
+    description:
+      "先走訪左子樹，再走訪右子樹，最後拜訪根節點。"
+  }
+};
+
+function element(tag, text, className) {
+  const el = document.createElement(tag);
+  if (text !== undefined) el.textContent = text;
+  if (className) el.className = className;
+  return el;
+}
+
+function svgElement(tag, attrs, text) {
+  const el = document.createElementNS(NS, tag);
+
+  Object.entries(attrs).forEach(([key, value]) => {
+    el.setAttribute(key, value);
+  });
+
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+function log(text) {
+  message = text;
+  history.push(text);
+}
+
+function stop() {
+  if (timer !== null) clearInterval(timer);
+  timer = null;
+}
+
+function clearAnimationLock() {
+  if (unlockTimer !== null) clearTimeout(unlockTimer);
+  unlockTimer = null;
+  animationLocked = false;
+}
+
+function updateButtons() {
+  $("back").disabled = !snapshots.length || animationLocked;
+  $("step").disabled =
+    timer !== null || animationLocked || index >= values.length;
+  $("play").disabled = index >= values.length;
+  $("reset").disabled = !values.length;
+
+  $("play").textContent =
+    timer !== null ? "暫停播放" : "自動播放";
+}
+
+function lockDuringAnimation() {
+  clearAnimationLock();
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    updateButtons();
+    return;
+  }
+
+  animationLocked = true;
+  updateButtons();
+
+  unlockTimer = setTimeout(() => {
+    unlockTimer = null;
+    animationLocked = false;
+    updateButtons();
+  }, 550);
+}
+
+function restart() {
+  stop();
+  clearAnimationLock();
+
+  root = null;
+  index = 0;
+  pending = null;
+  comparing = null;
+  fresh = null;
+  path = [];
+  history = [];
+  snapshots = [];
+
+  message = values.length
+    ? "準備完成，第一個數字 " + values[0] + " 將成為根節點。"
+    : "請先輸入數字，再按「建立」開始演示。";
+
+  render(false);
+}
+
+function loadInput() {
+  const parts = $("numbers").value
+    .trim()
+    .split(/[\s,，、]+/)
+    .filter(Boolean);
+
+  const valid = parts.length > 0 &&
+    parts.length <= 50 &&
+    parts.every(part =>
+      /^-?\d+$/.test(part) &&
+      Number.isSafeInteger(Number(part))
+    );
+
+  if (!valid) {
+    $("inputError").textContent =
+      "請輸入 1～50 個有效整數，以空白或逗號分隔。";
+    return;
+  }
+
+  $("inputError").textContent = "";
+  values = parts.map(Number);
+  restart();
+}
+
+function createNode(value) {
+  return {
+    value,
+    left: null,
+    right: null
+  };
+}
+
+function saveSnapshot() {
+  snapshots.push(structuredClone({
+    root,
+    index,
+    pending,
+    comparing,
+    fresh,
+    path,
+    history,
+    message
+  }));
+}
+
+function previousStep() {
+  if (animationLocked) return;
+
+  stop();
+
+  if (!snapshots.length) {
+    updateButtons();
+    return;
+  }
+
+  const saved = snapshots.pop();
+
+  root = saved.root;
+  index = saved.index;
+  pending = saved.pending;
+  comparing = saved.comparing;
+  fresh = saved.fresh;
+  path = saved.path;
+  history = saved.history;
+  message = saved.message;
+
+  render();
+  lockDuringAnimation();
+}
+
+function finishInsertion(node) {
+  fresh = node;
+  comparing = null;
+  pending = null;
+  index++;
+}
+
+function nextStep() {
+  if (animationLocked) return;
+
+  if (index >= values.length) {
+    stop();
+    updateButtons();
+    return;
+  }
+
+  saveSnapshot();
+  fresh = null;
+
+  if (!pending) {
+    path = [];
+    const value = values[index];
+
+    if (!root) {
+      root = createNode(value);
+      finishInsertion(root);
+
+      log(
+        "插入 " + value +
+        "：樹是空的，因此成為根節點。"
+      );
+    } else {
+      pending = {
+        value,
+        node: root,
+        parent: null,
+        side: null
+      };
+
+      comparing = root;
+
+      log(
+        "準備插入 " + value +
+        "，從根節點 " + root.value + " 開始比較。"
+      );
+    }
+  } else if (pending.node) {
+    const { value, node } = pending;
+    path.push(node);
+
+    if (value === node.value) {
+      log(value + " 已存在，略過重複數字。");
+
+      index++;
+      pending = null;
+      comparing = null;
+    } else {
+      const side = value < node.value ? "left" : "right";
+      const direction = side === "left" ? "左" : "右";
+      const symbol = side === "left" ? "＜" : "＞";
+
+      pending.parent = node;
+      pending.side = side;
+      pending.node = node[side];
+      comparing = pending.node;
+
+      log(
+        value + " " + symbol + " " + node.value +
+        "，往" + direction + "走" +
+        (pending.node
+          ? "，下一個比較節點是 " +
+            pending.node.value + "。"
+          : "，找到空位；下一步插入。")
+      );
+    }
+  } else {
+    const { value, parent, side } = pending;
+    const node = createNode(value);
+
+    parent[side] = node;
+
+    log(
+      "插入 " + value +
+      "，成為 " + parent.value +
+      " 的" + (side === "left" ? "左" : "右") +
+      "子節點。"
+    );
+
+    finishInsertion(node);
+  }
+
+  if (index >= values.length) {
+    stop();
+    message += " 所有數字已處理完成。";
+  }
+
+  render();
+  lockDuringAnimation();
+}
+
+function collectNodes(node, depth, output) {
+  if (!node) return;
+
+  collectNodes(node.left, depth + 1, output);
+  output.push({ node, depth });
+  collectNodes(node.right, depth + 1, output);
+}
+
+function traverse(node, type, output) {
+  if (!node) return;
+
+  if (type === "preorder") output.push(node.value);
+
+  traverse(node.left, type, output);
+
+  if (type === "inorder") output.push(node.value);
+
+  traverse(node.right, type, output);
+
+  if (type === "postorder") output.push(node.value);
+}
+
+function renderTraversal() {
+  const type = $("traversal").value;
+  const info = traversalInfo[type];
+  const result = [];
+
+  traverse(root, type, result);
+
+  $("traversalRule").textContent = info.rule;
+  $("traversalDescription").textContent = info.description;
+  $("order").replaceChildren();
+
+  if (!result.length) {
+    $("order").append(
+      element(
+        "span",
+        "尚無節點，插入數字後會顯示走訪結果。",
+        "empty-result"
+      )
+    );
+    return;
+  }
+
+  result.forEach((value, position) => {
+    if (position > 0) {
+      $("order").append(
+        element("span", "→", "order-arrow")
+      );
+    }
+
+    $("order").append(
+      element("span", String(value), "order-number")
+    );
+  });
+}
+
+function renderTree(entries, enableAnimation = true) {
+  const svg = $("tree");
+  const oldPositions = new Map();
+
+  svg.querySelectorAll("[data-node-value]").forEach(group => {
+    oldPositions.set(Number(group.dataset.nodeValue), {
+      x: Number(group.dataset.x),
+      y: Number(group.dataset.y)
+    });
+  });
+
+  svg.replaceChildren();
+  svg.toggleAttribute("hidden", !root);
+  $("empty").hidden = !!root;
+
+  $("empty").textContent = values.length
+    ? "按「下一步」或「自動播放」，開始建立二元搜尋樹。"
+    : "請在上方輸入數字，再按「建立」。";
+
+  if (!root) return;
+
+  const shouldAnimate = enableAnimation &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const width = Math.max(
+    $("canvas").clientWidth,
+    entries.length * 88 + 48
+  );
+
+  const levels =
+    Math.max(...entries.map(entry => entry.depth)) + 1;
+
+  const height = Math.max(
+    $("canvas").clientHeight,
+    levels * 100 + 40
+  );
+
+  svg.setAttribute("width", "100%");
+svg.setAttribute("height", "100%");
+svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+  const positions = new Map();
+  const animations = [];
+  const duration = "0.5s";
+
+  entries.forEach((entry, rank) => {
+    positions.set(entry.node, {
+      x: (rank + 1) * width / (entries.length + 1),
+      y: 55 + entry.depth * 100
+    });
+  });
+
+  function animateAttribute(target, attribute, from, to) {
+    if (!shouldAnimate || String(from) === String(to)) return;
+
+    const animation = svgElement("animate", {
+      attributeName: attribute,
+      from,
+      to,
+      dur: duration,
+      begin: "indefinite",
+      fill: "remove",
+      calcMode: "spline",
+      keyTimes: "0;1",
+      keySplines: "0.25 0.1 0.25 1"
+    });
+
+    target.append(animation);
+    animations.push(animation);
+  }
+
+  // 畫連線，讓新連線從父節點延伸。
+  entries.forEach(({ node }) => {
+    const parentPosition = positions.get(node);
+    const oldParent = oldPositions.get(node.value);
+
+    ["left", "right"].forEach(side => {
+      const child = node[side];
+      if (!child) return;
+
+      const childPosition = positions.get(child);
+      const oldChild = oldPositions.get(child.value);
+
+      const highlighted = path.includes(node) &&
+        (
+          path.includes(child) ||
+          child === comparing ||
+          child === fresh
+        );
+
+      const line = svgElement("line", {
+        x1: parentPosition.x,
+        y1: parentPosition.y,
+        x2: childPosition.x,
+        y2: childPosition.y,
+        stroke: highlighted ? "#78a898" : "#c0d8cf",
+        "stroke-width": highlighted ? 3 : 2,
+        "stroke-linecap": "round"
+      });
+
+      if (oldParent && oldChild) {
+        animateAttribute(
+          line, "x1", oldParent.x, parentPosition.x
+        );
+        animateAttribute(
+          line, "y1", oldParent.y, parentPosition.y
+        );
+        animateAttribute(
+          line, "x2", oldChild.x, childPosition.x
+        );
+        animateAttribute(
+          line, "y2", oldChild.y, childPosition.y
+        );
+      } else {
+        const start = oldParent || parentPosition;
+
+        animateAttribute(
+          line, "x1", start.x, parentPosition.x
+        );
+        animateAttribute(
+          line, "y1", start.y, parentPosition.y
+        );
+        animateAttribute(
+          line, "x2", start.x, childPosition.x
+        );
+        animateAttribute(
+          line, "y2", start.y, childPosition.y
+        );
+      }
+
+      svg.append(line);
+    });
+  });
+
+  // 畫節點。
+  entries.forEach(({ node }) => {
+    const position = positions.get(node);
+    const oldPosition = oldPositions.get(node.value);
+    const active = node === comparing;
+    const inserted = node === fresh;
+    const visited = path.includes(node);
+
+    const group = svgElement("g", {
+      transform: `translate(${position.x} ${position.y})`,
+      "data-node-value": node.value,
+      "data-x": position.x,
+      "data-y": position.y
+    });
+
+    group.append(
+      svgElement("title", {}, "節點 " + node.value)
+    );
+
+    const circle = svgElement("circle", {
+      cx: 0,
+      cy: 0,
+      r: 26,
+      fill: active
+        ? "#f9dfae"
+        : inserted
+          ? "#277d77"
+          : visited
+            ? "#dcece4"
+            : "#ffffff",
+      stroke: active
+        ? "#d7a042"
+        : inserted
+          ? "#277d77"
+          : "#a9cbbf",
+      "stroke-width": active || inserted ? 3 : 2
+    });
+
+    group.append(circle);
+
+    const text = String(node.value);
+
+    group.append(svgElement("text", {
+      x: 0,
+      y: 0,
+      "text-anchor": "middle",
+      "dominant-baseline": "central",
+      "font-size": text.length > 5
+        ? 10
+        : text.length > 3
+          ? 13
+          : 18,
+      "font-weight": "bold",
+      fill: inserted ? "#ffffff" : "#29474b"
+    }, text));
+
+    if (node === root) {
+      group.append(svgElement("text", {
+        x: 0,
+        y: -35,
+        "text-anchor": "middle",
+        "font-size": 10,
+        fill: "#71898c"
+      }, "ROOT"));
+    }
+
+    if (oldPosition) {
+      // 已有節點平滑移動。
+      if (
+        shouldAnimate &&
+        (
+          oldPosition.x !== position.x ||
+          oldPosition.y !== position.y
+        )
+      ) {
+        const movement = svgElement("animateTransform", {
+          attributeName: "transform",
+          type: "translate",
+          from: `${oldPosition.x} ${oldPosition.y}`,
+          to: `${position.x} ${position.y}`,
+          dur: duration,
+          begin: "indefinite",
+          fill: "remove",
+          calcMode: "spline",
+          keyTimes: "0;1",
+          keySplines: "0.25 0.1 0.25 1"
+        });
+
+        group.append(movement);
+        animations.push(movement);
+      }
+
+      // 比較目前節點時，顯示短暫放大效果。
+      if (active && shouldAnimate) {
+        const pulse = svgElement("animate", {
+          attributeName: "r",
+          values: "26;30;26",
+          dur: duration,
+          begin: "indefinite",
+          fill: "remove"
+        });
+
+        circle.append(pulse);
+        animations.push(pulse);
+      }
+    } else {
+      // 新節點放大並淡入。
+      animateAttribute(circle, "r", 0, 26);
+      animateAttribute(group, "opacity", 0, 1);
+    }
+
+    svg.append(group);
+  });
+
+  animations.forEach(animation => {
+    if (typeof animation.beginElement === "function") {
+      animation.beginElement();
+    }
+  });
+}
+
+function render(enableAnimation = true) {
+  const entries = [];
+  collectNodes(root, 0, entries);
+
+  $("count").textContent = entries.length;
+
+  $("height").textContent = entries.length
+    ? Math.max(...entries.map(entry => entry.depth)) + 1
+    : 0;
+
+  $("progress").textContent =
+    index + " / " + values.length + " 個數字已處理";
+
+  $("message").textContent = message;
+
+  updateButtons();
+
+  $("sequence").replaceChildren();
+
+  if (!values.length) {
+    $("sequence").append(
+      element("span", "尚未輸入數字", "empty-result")
+    );
+  } else {
+    values.forEach((value, position) => {
+      const className = "chip" +
+        (
+          position < index
+            ? " done"
+            : position === index
+              ? " active"
+              : ""
+        );
+
+      $("sequence").append(
+        element("span", String(value), className)
+      );
+    });
+  }
+
+  $("history").replaceChildren();
+
+  if (!history.length) {
+    $("history").append(
+      element("li", "尚無操作紀錄。")
+    );
+  } else {
+    history.forEach((text, position) => {
+      $("history").append(
+        element("li", (position + 1) + ". " + text)
+      );
+    });
+  }
+
+  $("history").scrollTop = $("history").scrollHeight;
+
+  renderTree(entries, enableAnimation);
+  renderTraversal();
+}
+
+$("form").onsubmit = event => {
+  event.preventDefault();
+  loadInput();
+};
+
+$("back").onclick = previousStep;
+$("step").onclick = nextStep;
+
+$("play").onclick = () => {
+  if (timer !== null) {
+    stop();
+    updateButtons();
+    return;
+  }
+
+  if (index >= values.length) return;
+
+  timer = setInterval(nextStep, 1000);
+  updateButtons();
+
+  if (!animationLocked) nextStep();
+};
+
+$("reset").onclick = restart;
+
+// 切換走訪方式，只更新結果，不重播插入動畫。
+$("traversal").onchange = renderTraversal;
+
+window.addEventListener("resize", () => {
+  const entries = [];
+  collectNodes(root, 0, entries);
+  renderTree(entries, false);
+});
+
+// 開啟網頁時，數字輸入欄保持空白。
+$("numbers").value = "";
+restart();
+</script>
+</body>
+</html>
