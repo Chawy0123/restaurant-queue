@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>海大餐廳候位系統</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #f0f6f5;
+  color: #29474b;
+  font-family: "Microsoft JhengHei", sans-serif;
+}
+header {
+  padding: 20px 6%;
+  background: white;
+  border-bottom: 1px solid #d6e5e3;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+main { max-width: 1180px; margin: auto; padding: 28px 20px; }
+button, input { font: inherit; }
+button {
+  padding: 12px 18px;
+  border: 1px solid #cadcda;
+  border-radius: 8px;
+  background: white;
+  color: #29474b;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { filter: brightness(.95); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible {
+  outline: 3px solid #81c6bc;
+  outline-offset: 2px;
+}
+.primary { background: #287e78; color: white; border-color: #287e78; }
+.heading { display: flex; justify-content: space-between; align-items: center; }
+.heading button { font-size: 23px; font-weight: bold; }
+.description { color: #738b8d; font-size: 14px; }
+.status {
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #deeeea;
+  color: #287e78;
+  white-space: nowrap;
+}
+.panel {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid #d6e5e3;
+  border-radius: 12px;
+  background: white;
+}
+.section-title { margin-bottom: 15px; font-size: 13px; color: #738b8d; }
+form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; }
+label { font-size: 14px; font-weight: bold; }
+input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #cadcda;
+  border-radius: 7px;
+  background: #f6faf9;
+}
+small { display: block; margin-top: 6px; color: #738b8d; font-size: 12px; }
+form button { align-self: start; margin-top: 27px; }
+#message { min-height: 20px; margin-bottom: 0; color: #287e78; font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions .clear { margin-left: auto; color: #ad634c; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-radius: 9px;
+  overflow: hidden;
+  background: #29474b;
+  color: white;
+}
+.stat { padding: 20px; border-right: 1px solid #ffffff26; }
+.stat:last-child { border: none; }
+.stat-label { color: #b9d0cf; font-size: 12px; }
+.stat-number { margin-top: 10px; font-size: 32px; font-weight: bold; }
+.stat-name { margin-top: 6px; font-size: 14px; overflow-wrap: anywhere; }
+.floor-label {
+  display: flex;
+  justify-content: space-between;
+  margin: 22px 0 12px;
+  font-size: 12px;
+  color: #738b8d;
+}
+.floor {
+  display: flex;
+  gap: 12px;
+  min-height: 210px;
+  padding: 14px;
+  border: 1px solid #d6e5e3;
+  border-radius: 10px;
+  background: #f5faf8;
+}
+.place {
+  flex: 0 0 65px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #96b6b4;
+  border-radius: 7px;
+  background: #e3efed;
+  font-weight: bold;
+}
+.entrance { background: white; border-style: dashed; }
+.queue {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 12px;
+  align-items: center;
+  overflow-x: auto;
+}
+.person { flex: 0 0 96px; text-align: center; }
+.ticket {
+  padding: 14px 8px;
+  border: 1px solid #cbded8;
+  border-radius: 8px;
+  background: white;
+}
+.person:first-child .ticket { border: 2px solid #287e78; background: #eaf6ef; }
+.ticket-number { font-size: 25px; font-weight: bold; color: #287e78; }
+.ticket-name { margin-top: 7px; font-size: 13px; overflow-wrap: anywhere; }
+.badge {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #287e78;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+.last { background: #bc7957; }
+.empty { width: 100%; color: #738b8d; text-align: center; font-size: 14px; }
+.legend { margin-top: 10px; color: #738b8d; font-size: 12px; }
+h2 { margin: 0 0 16px; font-size: 17px; }
+#list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow: auto; }
+#list li { padding: 14px 0; border-bottom: 1px solid #e0ebe8; overflow-wrap: anywhere; }
+#list strong { color: #287e78; margin-right: 10px; }
+footer { padding: 25px; text-align: center; color: #738b8d; font-size: 12px; }
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  form { grid-template-columns: 1fr 1fr; }
+  form button { grid-column: 1 / -1; margin: 0; }
+  .stat { padding: 14px; }
+}
+@media (max-width: 480px) {
+  main { padding: 20px 12px; }
+  .panel { padding: 14px; }
+  form { grid-template-columns: 1fr; }
+  .place { flex-basis: 45px; }
+  .floor { gap: 8px; padding: 8px; }
+  .stat-number { font-size: 25px; }
+  .heading button { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+<header>◈ 海大餐廳 ｜ 候位系統</header>
+
+<main>
+  <div class="heading">
+    <button id="business" class="primary">開始營業</button>
+    <span id="status" class="status">● 尚未營業</span>
+  </div>
+  <p class="description">歡迎來到海大餐廳，請登記資料並依序等候。</p>
+
+  <section class="panel">
+    <div class="section-title">01 ／ 登記候位</div>
+    <form id="registerForm">
+      <label>
+        姓名
+        <input id="name" placeholder="請輸入姓名" autocomplete="name" maxlength="30" required>
+        <small>範例：王XX</small>
+      </label>
+      <label>
+        電話號碼
+        <input id="phone" type="tel" placeholder="請輸入電話號碼"
+               autocomplete="tel" maxlength="20" required>
+        <small>範例：0912-345-678</small>
+      </label>
+      <button id="register" class="primary" type="submit">＋ 登記候位</button>
+    </form>
+    <p id="message" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel actions" aria-label="候位操作">
+    <button id="next" class="primary">叫下一位 →</button>
+    <button id="repeat">再次叫號</button>
+    <button id="skip">過號至隊尾</button>
+    <button id="clear" class="clear">清空候位</button>
+  </section>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="section-title">02 ／ 現場候位展示</div>
+
+      <div class="stats" aria-live="polite">
+        <div class="stat">
+          <div class="stat-label">目前叫號</div>
+          <div id="currentNumber" class="stat-number">—</div>
+          <div id="currentName" class="stat-name">尚未叫號</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">下一位</div>
+          <div id="nextNumber" class="stat-number">—</div>
+          <div id="nextName" class="stat-name">等待登記</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">總候位人數</div>
+          <div class="stat-number"><span id="count">0</span> 人</div>
+          <div class="stat-name">依登記順序叫號</div>
+        </div>
+      </div>
+
+      <div class="floor-label">
+        <span>排隊示意圖</span>
+        <span>櫃台 ← 候位隊伍 ← 入口</span>
+      </div>
+      <div class="floor">
+        <div class="place">櫃台<small>COUNTER</small></div>
+        <div id="queue" class="queue" aria-label="依序候位隊伍"></div>
+        <div class="place entrance">入口<small>ENTRANCE</small></div>
+      </div>
+      <div class="legend">
+        <span class="badge">FIRST</span> 第一位候位者　
+        <span class="badge last">LAST</span> 最後一位候位者
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>候位名單</h2>
+      <ol id="list"></ol>
+      <p class="description">叫號後請前往櫃台。</p>
+    </aside>
+  </div>
+</main>
+<footer>海大餐廳候位系統 · 資料儲存於此瀏覽器</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const storageKey = "ntou-queue";
+let state = { open: false, queue: [], current: null, serial: 1 };
+
+function validPerson(p) {
+  return p && Number.isInteger(p.number) &&
+    typeof p.name === "string" && typeof p.phone === "string";
+}
+
+try {
+  const saved = JSON.parse(localStorage.getItem(storageKey));
+  if (saved && typeof saved.open === "boolean" &&
+      Array.isArray(saved.queue) && saved.queue.every(validPerson) &&
+      Number.isInteger(saved.serial) && saved.serial > 0 &&
+      (saved.current === null || validPerson(saved.current))) {
+    state = saved;
+  }
+} catch {}
+
+function make(tag, text, className) {
+  const element = document.createElement(tag);
+  if (text !== undefined) element.textContent = text;
+  if (className) element.className = className;
+  return element;
+}
+
+function save() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {
+    $("message").textContent = "瀏覽器無法儲存資料，關閉頁面後可能遺失候位資訊。";
+  }
+  render();
+}
+
+function notify(text) {
+  $("message").textContent = text;
+  save();
+}
+
+function render() {
+  $("business").textContent = state.open ? "結束營業" : "開始營業";
+  $("status").textContent = state.open ? "● 營業中" : "● 尚未營業";
+  $("register").disabled = !state.open;
+  $("next").disabled = !state.open || !state.queue.length;
+  $("repeat").disabled = !state.open || !state.current;
+  $("skip").disabled = !state.open || !state.current;
+  $("clear").disabled = !state.queue.length && !state.current;
+
+  $("currentNumber").textContent = state.current ? state.current.number + " 號" : "—";
+  $("currentName").textContent = state.current ? state.current.name : "尚未叫號";
+  $("nextNumber").textContent = state.queue.length ? state.queue[0].number + " 號" : "—";
+  $("nextName").textContent = state.queue.length ? state.queue[0].name : "等待登記";
+  $("count").textContent = state.queue.length;
+
+  $("queue").replaceChildren();
+  $("list").replaceChildren();
+
+  state.queue.forEach((person, index) => {
+    const card = make("div", undefined, "person");
+    const ticket = make("div", undefined, "ticket");
+    ticket.append(
+      make("div", person.number + " 號", "ticket-number"),
+      make("div", person.name, "ticket-name")
+    );
+    card.append(ticket);
+
+    if (index === 0) card.append(make("span", "FIRST", "badge"));
+    if (index === state.queue.length - 1) {
+      card.append(make("span", "LAST", "badge last"));
+    }
+    $("queue").append(card);
+
+    const item = make("li");
+    item.append(
+      make("strong", person.number + " 號"),
+      make("span", person.name),
+      make("small", person.phone.slice(0, 4) + "-***-" + person.phone.slice(-3))
+    );
+    $("list").append(item);
+  });
+
+  if (!state.queue.length) {
+    $("queue").append(make("div", "目前沒有候位者，歡迎登記。", "empty"));
+    $("list").append(make("li", "尚無候位資料", "empty"));
+  }
+}
+
+$("business").onclick = () => {
+  state.open = !state.open;
+  notify(state.open ? "已開始營業，可以登記候位。" : "已結束營業，候位資料已保留。");
+};
+
+$("registerForm").onsubmit = event => {
+  event.preventDefault();
+  if (!state.open) return;
+
+  const name = $("name").value.trim();
+  const phone = $("phone").value.replace(/[\s-]/g, "");
+
+  if (!name) {
+    $("message").textContent = "請輸入姓名。";
+    $("name").focus();
+    return;
+  }
+  if (!/^09\d{8}$/.test(phone)) {
+    $("message").textContent = "請輸入有效手機號碼，例如 0912-345-678。";
+    $("phone").focus();
+    return;
+  }
+  if (state.queue.some(person => person.phone === phone)) {
+    $("message").textContent = "此電話號碼已在候位名單中。";
+    return;
+  }
+
+  const person = { number: state.serial++, name, phone };
+  state.queue.push(person);
+  $("registerForm").reset();
+  notify("登記成功！" + person.number + " 號 " + name + "，請等候叫號。");
+  $("name").focus();
+};
+
+function speak(person) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const speech = new SpeechSynthesisUtterance(
+    person.number + "號，" + person.name + "，請到櫃台。"
+  );
+  speech.lang = "zh-TW";
+  window.speechSynthesis.speak(speech);
+}
+
+$("next").onclick = () => {
+  if (!state.open || !state.queue.length) return;
+  state.current = state.queue.shift();
+  notify("請 " + state.current.number + " 號 " + state.current.name + " 前往櫃台。");
+  speak(state.current);
+};
+
+$("repeat").onclick = () => {
+  if (!state.open || !state.current) return;
+  notify("再次叫號：" + state.current.number + " 號 " + state.current.name);
+  speak(state.current);
+};
+
+$("skip").onclick = () => {
+  if (!state.open || !state.current) return;
+  const person = state.current;
+  state.queue.push(person);
+  state.current = null;
+  notify(person.number + " 號已移至隊尾，請按「叫下一位」繼續叫號。");
+};
+
+$("clear").onclick = () => {
+  if (!confirm("確定清空所有候位及目前叫號，並將號碼重設為 1？")) return;
+  state.queue = [];
+  state.current = null;
+  state.serial = 1;
+  notify("候位名單已清空。");
+};
+
+render();
+</script>
+</body>
+</html>
